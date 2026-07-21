@@ -17,8 +17,6 @@ is directly interoperable with KeePassXC, KeeWeb, KeePass2, and other
 standards-compliant KDBX clients. Sync transport is S3-compatible object storage,
 with in-app three-way merge at the entry level.
 
-**License:** MIT. **Status:** Phase 0 MVP code-complete.
-
 ## !!WARNING!! PLEASE READ
 
 This repository is a hobby project of a single person (or at best a few people). The author(s) of
@@ -36,27 +34,6 @@ this project wish to make the following **VERY** clear:
 
 - This software is opinionated in how it works. What that mostly means is that it was designed to
   solve the needs of the original author. It may or may not fit your needs.
-
-## What works today
-
-All Phase 0 features are implemented:
-
-- **Vault lifecycle:** create, open, save, rekey, vault registry, atomic writes, advisory file
-  locking. Argon2id KDF, KDBX4 format. Every vault round-trips through KeePassXC.
-- **Entry management:** credential / secure-note / TOTP / attachment entry types, groups, tags,
-  free-text + wildcard + fuzzy search, per-entry history, expiration.
-- **Password generation:** random passwords (configurable character classes) and EFF diceware
-  passphrases, via `getrandom`/`OsRng`.
-- **Security behaviors:** idle auto-lock with configurable timeout, OS lock-event detection
-  (logind on Linux, IOKit on macOS), clipboard auto-clear, SIGTSTP lock, core-dump suppression.
-- **S3-compatible sync:** hand-rolled SigV4 signer + `ureq`/`rustls`. Upload, download,
-  conditional-put conflict detection, entry-level three-way merge with loser-as-history
-  preservation. Works with AWS S3, MinIO, and any S3-compatible endpoint.
-- **CLI:** one-shot subcommands for every core operation (`vault`, `entry`, `gen`, `sync`, `keys`).
-  JSON output, stable exit codes, shell completions (bash/zsh/fish).
-- **TUI:** interactive terminal UI with tabbed workspace, command registry, customizable
-  keybindings and themes, fuzzy search with preview, visual-mode bulk operations, mouse support,
-  and read-only sessions. See the [TUI section](#terminal-ui) below.
 
 ## Workspace layout
 
