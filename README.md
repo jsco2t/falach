@@ -1,11 +1,12 @@
 # Falach
 
 ```
-    ______      __           __
-   / ____/___ _/ /___ ______/ /_
-  / /_  / __ `/ / __ `/ ___/ __ \
- / __/ / /_/ / / /_/ / /__/ / / /
-/_/    \__,_/_/\__,_/\___/_/ /_/
+███████╗ █████╗ ██╗      █████╗  ██████╗██╗  ██╗
+██╔════╝██╔══██╗██║     ██╔══██╗██╔════╝██║  ██║
+█████╗  ███████║██║     ███████║██║     ███████║
+██╔══╝  ██╔══██║██║     ██╔══██║██║     ██╔══██║
+██║     ██║  ██║███████╗██║  ██║╚██████╗██║  ██║
+╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
 ```
 
 Falach (Scottish Gaelic: _"hidden, concealed"_, pronounced _FAH-luhkh_) is an offline-first secrets
@@ -190,18 +191,9 @@ and run `make vendor` as the only networked dependency step.
 
 ## Security and supply chain
 
-See [`CLAUDE.md`](CLAUDE.md) for the non-negotiable security and supply-chain
+See [`CLAUDE.md`](CLAUDE.md)/[`AGENTS.md`](AGENTS.md) for the non-negotiable security and supply-chain
 rules: zeroize on drop, no plaintext to disk, atomic writes, permissive-license
 deps only, vendored + pinned, no telemetry.
-
-## Planning docs
-
-The product and engineering docs live in the project notebook, not in this
-repository:
-
-- PRD: `/home/jason/Developer/sources/personal/notebook/projects/falach/prd.md`
-- Feature plans: `/home/jason/Developer/sources/personal/notebook/projects/falach/features/`
-- Contributor workflow: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## AI Coding Policy
 
