@@ -1,0 +1,128 @@
+# cargo-deny configuration for Falach.
+#
+# Enforces the supply-chain rules defined in CLAUDE.md (see "Supply chain
+# rules — non-negotiable"): permissive licenses only, no copyleft, no banned
+# crates, no unmaintained crates, no advisories.
+#
+# Run with: cargo deny check
+
+[graph]
+all-features = false
+no-default-features = false
+# Restrict the analysed dependency graph to the Phase-0 target platforms
+# (CLAUDE.md §"Target platforms": macOS aarch64+x86_64, Linux x86_64+aarch64;
+# Windows is out of scope). Without this, `cargo deny` evaluates every
+# transitive across every triple, including Windows-only deps like
+# `clipboard-win` (BSL-1.0) pulled by `arboard` — code that never links
+# into our binaries. Scoping here keeps the supply-chain audit honest
+# about what we actually ship.
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "aarch64-apple-darwin" },
+]
+
+[output]
+feature-depth = 1
+
+# ---------------------------------------------------------------------------
+# Licenses — permissive only. GPL/LGPL/AGPL/SSPL/Commons-Clause are forbidden.
+# ---------------------------------------------------------------------------
+[licenses]
+version = 2
+confidence-threshold = 0.93
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "Unlicense",
+    "CC0-1.0",
+]
+# Anything not in `allow` is rejected. Explicit deny lists are redundant with
+# this stance but kept for clarity in CI logs:
+exceptions = []
+
+# NOTE: a `[[licenses.clarify]]` for `ring` was needed historically (older
+# ring versions declared "MIT AND ISC AND OpenSSL", and OpenSSL is not on
+# the allowlist). features/s3-sync/ T2.1 re-introduced ring (via
+# ureq → rustls's ring provider); the current ring release declares
+# "Apache-2.0 AND ISC", both already on the allowlist, so no clarify is
+# needed. Restore the clarify if a future ring version reintroduces OpenSSL
+# in its declared license expression.
+
+# ---------------------------------------------------------------------------
+# Bans — specific crates forbidden by policy.
+# ---------------------------------------------------------------------------
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+allow = []
+deny = [
+    # OpenSSL: we use pure-Rust crypto only (RustCrypto family via keepass-rs).
+    { name = "openssl-sys", reason = "use pure-Rust crypto only" },
+    { name = "openssl",     reason = "use pure-Rust crypto only" },
+    { name = "native-tls",  reason = "use pure-Rust TLS via rustls if needed" },
+
+    # libgit2: GPL-2.0 with linking exception. Policy forbids the ambiguity.
+    # The git transport itself was abandoned (PRD §C decision #17 / 2026-05-27);
+    # s3-sync replaces it. The ban stays — Falach policy is permissive licenses
+    # only, regardless of whether we ship a git transport.
+    { name = "git2",        reason = "GPL-2.0 with linking exception; not on the permissive-only allowlist" },
+    { name = "libgit2-sys", reason = "GPL-2.0 with linking exception; not on the permissive-only allowlist" },
+]
+skip = []
+skip-tree = []
+
+# ---------------------------------------------------------------------------
+# Sources — only crates.io (vendored). No git or alternative registries.
+# ---------------------------------------------------------------------------
+[sources]
+unknown-registry = "deny"
+unknown-git      = "deny"
+allow-registry   = ["https://github.com/rust-lang/crates.io-index"]
+allow-git        = []
+
+# ---------------------------------------------------------------------------
+# Advisories — fail on any RustSec advisory.
+# ---------------------------------------------------------------------------
+[advisories]
+version = 2
+yanked = "deny"
+# Policy is "no advisories" (ignore = []). The two entries below are the sole,
+# documented exceptions. Keep this list minimal and re-review on every dep bump.
+#
+# RUSTSEC-2026-0194 / RUSTSEC-2026-0195 — quick-xml CPU / memory-exhaustion DoS
+# when parsing untrusted XML with many attributes / namespace declarations.
+# Fixed in quick-xml >= 0.41.0. We pull quick-xml transitively via TWO paths,
+# neither of which we can lift to 0.41 today:
+#
+#   1. wayland-scanner (0.31.10, latest) -> ... -> arboard -> falach-security.
+#      wayland-scanner requires quick-xml "0.39" and has NO published release
+#      that moves to 0.41, so there is no upstream fix to upgrade to. It uses
+#      quick-xml at BUILD TIME to codegen from the Wayland protocol XML shipped
+#      inside the crate — trusted, fixed input, never untrusted runtime data.
+#      The DoS is not reachable in our build or at runtime.
+#
+#   2. keepass 0.12.9 (pinned "=0.12.9" in falach-core) requires quick-xml
+#      "0.40". keepass 0.13.16 moves to quick-xml 0.41, but that is a major bump
+#      of the core KDBX library with the `_merge` feature active and must clear
+#      its own KeePassXC round-trip + merge interop re-validation before it can
+#      land (the KDBX-interop promise in CLAUDE.md). Tracked as a follow-up;
+#      until then the residual exposure is a low-severity CPU/memory DoS
+#      reachable only when a user opens a maliciously-crafted vault — no data
+#      loss, no RCE. Mirrored in .cargo/audit.toml (cargo audit reads its own
+#      ignore list).
+ignore = [
+    { id = "RUSTSEC-2026-0194", reason = "quick-xml DoS: no upstream fix on the wayland-scanner (build-time, trusted input) path; keepass 0.13 bump tracked as a follow-up" },
+    { id = "RUSTSEC-2026-0195", reason = "quick-xml DoS: no upstream fix on the wayland-scanner (build-time, trusted input) path; keepass 0.13 bump tracked as a follow-up" },
+]

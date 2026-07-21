@@ -1,0 +1,144 @@
+[package]
+name = "falach-sync"
+description = "Falach sync — three-way KDBX merge, vaults.toml sync configuration, and the (transport-agnostic) SyncTransport trait. Transitional state: the gix-based git transport was removed at the start of features/s3-sync/; an S3-compatible transport lands across Phases 2–6 of that feature."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# `test-helpers` exposes test-only types ([`transport::memory::MemoryTransport`])
+# under `pub` so other workspace crates' integration tests can consume them
+# without each duplicating an in-memory `SyncTransport` impl. Without the
+# feature, these types are visible only inside this crate's own `#[cfg(test)]`
+# blocks. Production builds NEVER enable the feature; CI's integration job
+# does (T6.3).
+test-helpers = []
+
+# `minio-tests` gates the live-wire MinIO integration binary
+# (`tests/minio_integration.rs`), whose `#[ignore]`-gated cases require a real
+# S3 backend (`make minio-up`). Feature-gating — not just `#[ignore]` — keeps
+# them OUT of the blanket `make test-ignored` sweep, which runs on the
+# non-MinIO `vault-core` CI job and would otherwise compile+run them and panic
+# on the unset `FALACH_MINIO_*` env. Only `make test-s3-integration` (the
+# MinIO-provisioned `integration-s3` job) enables it. Mirrors the
+# `clipboard-tests` gate on falach-security's display-dependent cases.
+minio-tests = []
+
+[dependencies]
+# First-party. The dependency arrow points only into core (ADR-001); this
+# crate never depends on the UI crates, and core never depends on it.
+falach-core = { path = "../falach-core", version = "0.1" }
+
+# Config / error skeleton.
+serde = { version = "1.0", features = ["derive"] }
+# `serde_json` parses the IMDSv2 IAM-credentials JSON response shape in
+# `auth::iam`. Already vendored as a falach-cli dep; declared directly
+# here so the consumer-of-record is explicit.
+serde_json = "1.0"
+toml = "0.8"
+thiserror = "2.0"
+zeroize = { version = "1.8", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+
+# RST-CRED-1 encrypted-credential container (carryover from the abandoned
+# sync-git feature; reused by s3-sync Phase 4 T4.1/T4.2 to encrypt the S3
+# secret access key at rest in vaults.toml). RustCrypto family (pure Rust).
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+base64 = "0.22"
+# Sync log host line; pure-Rust, Unix + macOS supported.
+gethostname = "1"
+
+# `getrandom` 0.3.x: OS entropy source for fresh RST-CRED-1 salt + nonce
+# per encrypt. CLAUDE.md mandates a CSPRNG; `getrandom` is the canonical
+# OS source (it's what `rand::OsRng` wraps). Direct dep keeps the call
+# site obvious; the crate is already a transitive via `chacha20poly1305`
+# so no new vendored sources.
+getrandom = "0.3"
+
+# `secrecy` 0.10.x: SecretBox<str> (aliased SecretString) for the
+# secret-access-key + session-token fields on `auth::ResolvedCredentials`.
+# Pure-Rust, `no_std`-friendly, `forbid(unsafe_code)`. License MIT OR
+# Apache-2.0. Zeroizes on drop via the `zeroize` crate (already vendored).
+# Per follow-ups/open-items.md OQ-9 resolution — vendored at task kickoff
+# instead of rolling an in-tree newtype because `ExposeSecret` discipline
+# is worth the ~5 small transitive deps (all already in the workspace tree).
+secrecy = "0.10"
+
+# --- S3 wire protocol stack (features/s3-sync/ T2; design.md ADR-1) ---
+#
+# Hand-rolled SigV4 signer over RustCrypto's HMAC + SHA-256. Both versions
+# are already in the workspace dep tree via keepass-rs (keepass 0.12.9
+# pulls hmac 0.13 + sha2 0.11); declaring them as direct deps here so the
+# signer's `use hmac::Hmac; use sha2::Sha256;` aren't relying on incidental
+# transitive availability.
+hmac = "0.13"
+sha2 = "0.11"
+# Constant-time hex encoding for the SigV4 signature output. Pure Rust,
+# no_std-capable, ~0.4kloc. License: MIT OR Apache-2.0.
+hex = "0.4"
+
+# Pure-Rust blocking HTTP client over rustls. `default-features = false`
+# disables compression (gzip/brotli). The conventional `rustls` feature is
+# AVOIDED because it chains to `rustls-webpki-roots → webpki-roots`
+# (MPL-2.0, forbidden by deny.toml). Instead we compose the underscore
+# features explicitly:
+#   - `rustls-no-provider`: pulls rustls itself without picking a TLS
+#     provider and WITHOUT chaining to `rustls-webpki-roots`.
+#   - `_ring`: selects the ring crypto provider (pure-Rust assembler;
+#     avoids `aws-lc-rs`'s C deps).
+#   - `platform-verifier`: routes TLS verification through
+#     `rustls-platform-verifier` (already vendored) and the OS trust store
+#     (macOS Keychain certs, Linux system CA bundle).
+# The underscore prefix is ureq's "private feature" convention; using these
+# directly is the only way to disable `webpki-roots` per ureq 3.3.0's
+# feature graph. T2.1 verifies via `cargo tree -p falach-sync | grep
+# webpki` returning nothing.
+ureq = { version = "3.3.0", default-features = false, features = ["rustls-no-provider", "_ring", "platform-verifier"] }
+
+# Test-only merge driver for the KeePassXC interop harness
+# (tools/interop-tests/sync_us-044.sh, run by `make test-sync-interop`). Gated
+# behind `test-helpers` via `required-features` so it is NOT built by a plain
+# `cargo build` / `make build` — only when tests are in play. It emits a
+# merged vault (US-044 collision: winner current + loser in history) for
+# `keepassxc-cli` to round-trip.
+[[bin]]
+name = "merge-interop-driver"
+path = "tests/bin/merge_interop_driver.rs"
+required-features = ["test-helpers"]
+
+[dev-dependencies]
+# Self-dependency with `test-helpers` enabled so this crate's *integration*
+# tests (tests/us_04*.rs, tests/fault_injection.rs,
+# tests/minio_integration.rs) can use the test-only `MemoryTransport` and
+# the `From<MemoryTransportError> for SyncError` bridge — both gated behind
+# `cfg(any(test, feature = "test-helpers"))`. An integration test is a
+# separate crate, so the lib's `cfg(test)` is NOT active for it; the feature
+# is the only way to expose those items. Production `cargo build` never
+# pulls dev-deps, so `test-helpers` stays out of shipped binaries. This is
+# the standard Cargo idiom for "enable a feature only under test", and it
+# lets `cargo test -p falach-sync` (no `--features`) build the US tests.
+falach-sync = { path = ".", version = "0.1", features = ["test-helpers"] }
+# vaults.toml round-trip tests write a registry to a temp dir and reload it.
+tempfile = "3.10"
+# SyncTestEnv computes the same hex(SHA-256) over on-disk vault bytes that the
+# orchestrator uses for its `last_synced_local_sha256` pointer, so US/MinIO
+# integration tests can model "synced then edited" precisely. Both are already
+# normal deps (so no new vendored sources); an integration test is a separate
+# crate and only sees dev-deps, hence the duplicate declaration here.
+sha2 = "0.11"
+hex = "0.4"
+# Merge-engine property tests (tests/merge_property_tests.rs): `proptest` +
+# `proptest-derive` drive the four merge properties (no-data-loss, winner,
+# disjoint-commutativity, idempotence) with shrinking; `arbitrary` drives the
+# byte-seeded `fuzz_scenarios_never_lose_data` smoke test (and is the
+# `Arbitrary` impl a future cargo-fuzz target would reuse).
+proptest = "1"
+proptest-derive = "0.5"
+arbitrary = { version = "1", features = ["derive"] }

@@ -1,0 +1,1138 @@
+#compdef falach
+
+autoload -U is-at-least
+
+_falach() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_falach_commands" \
+"*::: :->falach" \
+&& ret=0
+    case $state in
+    (falach)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-command-$line[1]:"
+        case $line[1] in
+            (vault)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_falach__subcmd__vault_commands" \
+"*::: :->vault" \
+&& ret=0
+
+    case $state in
+    (vault)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-vault-command-$line[1]:"
+        case $line[1] in
+            (create)
+_arguments "${_arguments_options[@]}" : \
+'--id=[Registry name for the new vault (unique)]:ID:_default' \
+'--path=[Absolute or relative path where the \`.kdbx\` file will be created]:PATH:_files' \
+'--keyfile=[Optional keyfile required to unlock this vault]:KEYFILE:_files' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'--no-recovery-warning[Acknowledge the no-recovery warning. Required — there is no master-password recovery in Falach]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(open)
+_arguments "${_arguments_options[@]}" : \
+'--id=[Registry name of the vault to probe]:ID:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(set-sync)
+_arguments "${_arguments_options[@]}" : \
+'--id=[Registry name of the vault to configure]:ID:_default' \
+'--s3-bucket=[S3 bucket name]:S3_BUCKET:_default' \
+'--s3-key=[S3 object key (the \`.kdbx\` filename on the remote)]:S3_KEY:_default' \
+'--s3-endpoint=[Optional custom S3 endpoint URL (e.g. \`https\://minio.internal\`). Defaults to the AWS regional endpoint for \`--s3-region\`]:S3_ENDPOINT:_default' \
+'--s3-region=[S3 region (required for \`SigV4\` signing). Defaults to \`us-east-1\`]:S3_REGION:_default' \
+'--s3-credentials-source=[How to obtain S3 credentials. Grammar\: \`prompt\` (default), \`iam-role\`, \`profile\:<name>\`, \`env\:<prefix>\` (see struct docs)]:S3_CREDENTIALS_SOURCE:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'--s3-path-style[Use path-style addressing (\`hostname/bucket\`) instead of virtual-hosted-style (\`bucket.hostname\`). Defaults to false]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(set-lock)
+_arguments "${_arguments_options[@]}" : \
+'--id=[Registry name of the vault to configure]:ID:_default' \
+'(--clear)--timeout=[Idle-timeout in seconds before the vault auto-locks. Must be at least 1]:TIMEOUT:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'(--timeout)--clear[Remove the per-vault override and fall back to the default]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__vault__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-vault-help-command-$line[1]:"
+        case $line[1] in
+            (create)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(open)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set-sync)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set-lock)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(entry)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_falach__subcmd__entry_commands" \
+"*::: :->entry" \
+&& ret=0
+
+    case $state in
+    (entry)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-entry-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the vault to add into]:VAULT:_default' \
+'--title=[Title of the new entry (required)]:TITLE:_default' \
+'--username=[Optional username]:USERNAME:_default' \
+'--url=[Optional URL]:URL:_default' \
+'--notes=[Optional notes]:NOTES:_default' \
+'--length=[Generated-password length (only consulted with \`--generate\`). Default\: 20]:LENGTH:_default' \
+'*--tag=[Tag to attach to the new entry. Repeat for multiple tags]:TAGS:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'(--generate)--password-stdin[Read the entry'\''s password from stdin (no-echo when stdin is a TTY). Mutually exclusive with \`--generate\`]' \
+'(--password-stdin)--generate[Generate a fresh password via \`falach-genpw\`. Mutually exclusive with \`--password-stdin\`. Honours the \`PasswordClassFlags\` + \`--length\` flags]' \
+'--show-password[Include the generated/captured password in the output view (JSON + human). Default\: omit]' \
+'--no-lowercase[Disable lowercase letters in the generated password]' \
+'--no-uppercase[Disable uppercase letters in the generated password]' \
+'--no-digits[Disable digits in the generated password]' \
+'--no-symbols[Disable symbols in the generated password]' \
+'--exclude-ambiguous[Exclude visually ambiguous characters (\`0/O/o/1/l/I/|/backtick\`)]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the vault]:VAULT:_default' \
+'(--title)--uuid=[UUID of the entry. Mutually exclusive with \`--title\`]:UUID:_default' \
+'(--uuid)--title=[Title of the entry; case-insensitive exact match. If multiple entries share the title the command exits 1 listing the candidate UUIDs]:TITLE:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'(--copy)--show-password[Include the password value in the output. Mutually exclusive with \`--copy\` (copying redundantly with showing is suspicious)]' \
+'--show-totp[Compute and include the current TOTP code (HMAC-SHA1; RFC 6238)]' \
+'(--show-password)--copy[Copy the password to the system clipboard with auto-clear. Mutually exclusive with \`--show-password\`]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(edit)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the vault]:VAULT:_default' \
+'--uuid=[UUID of the entry to edit (required)]:UUID:_default' \
+'--title=[New title]:TITLE:_default' \
+'--username=[New username]:USERNAME:_default' \
+'--url=[New URL]:URL:_default' \
+'--notes=[New notes]:NOTES:_default' \
+'*--add-tag=[Tag to add. Repeat for multiple]:ADD_TAGS:_default' \
+'*--rm-tag=[Tag to remove (silent no-op if not present). Repeat for multiple]:RM_TAGS:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'--password-stdin[Read a new password from stdin (no-echo when stdin is a TTY)]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(rm)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the vault]:VAULT:_default' \
+'--uuid=[UUID of the entry to remove (required)]:UUID:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'--permanent[Permanently delete the entry, bypassing the recycle bin]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the vault]:VAULT:_default' \
+'*--tag=[Filter to entries carrying every supplied tag (intersect). Repeat the flag for multiple tags]:TAGS:_default' \
+'--limit=[Optional pagination — max rows to emit]:LIMIT:_default' \
+'--offset=[Optional pagination — rows to skip from the start]:OFFSET:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'--include-expired[Include expired entries. Default\: omit]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(search)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the vault]:VAULT:_default' \
+'--mode=[Matching mode\: substring (default), wildcard, or fuzzy]:MODE:((substring\:"Case-insensitive substring match (default)"
+wildcard\:"Whole-field wildcard match (\`*\` any run, \`?\` one char)"
+fuzzy\:"fzf-style fuzzy match; JSON output gains \`score\` + \`matched_indices\`"))' \
+'--scope=[Restrict the search\: \`group\:<name>\` (the group subtree) or \`tag\:<tag>\`]:SCOPE:_default' \
+'--limit=[Optional cap on returned matches]:LIMIT:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'--include-recycled[Include entries in the recycle bin. Default\: exclude]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+':query -- Search query (positional):_default' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__entry__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-entry-help-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(edit)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rm)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(search)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(gen)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_falach__subcmd__gen_commands" \
+"*::: :->gen" \
+&& ret=0
+
+    case $state in
+    (gen)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-gen-command-$line[1]:"
+        case $line[1] in
+            (password)
+_arguments "${_arguments_options[@]}" : \
+'--length=[Password length (characters). Default\: 20]:LENGTH:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'--no-lowercase[Disable lowercase letters in the generated password]' \
+'--no-uppercase[Disable uppercase letters in the generated password]' \
+'--no-digits[Disable digits in the generated password]' \
+'--no-symbols[Disable symbols in the generated password]' \
+'--exclude-ambiguous[Exclude visually ambiguous characters (\`0/O/o/1/l/I/|/backtick\`)]' \
+'(--show)--copy[Copy the value to the clipboard with auto-clear. Mutually exclusive with \`--show\` (copy implies do-not-print)]' \
+'(--copy)--show[In JSON mode, include the generated value in the output. Default JSON output omits the value; human-mode output always prints the value to stdout regardless of this flag (mirror \`pbcopy\` style)]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(passphrase)
+_arguments "${_arguments_options[@]}" : \
+'--word-count=[Number of words. Default\: 6]:WORD_COUNT:_default' \
+'--separator=[Separator inserted between words. Default\: \`-\`]:SEPARATOR:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'(--show)--copy[Copy the value to the clipboard with auto-clear. Mutually exclusive with \`--show\`]' \
+'(--copy)--show[In JSON mode, include the generated value in the output]' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__gen__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-gen-help-command-$line[1]:"
+        case $line[1] in
+            (password)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(passphrase)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(sync)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Vault registry name to sync. Optional\: if only one vault is registered, that one is used by default]:VAULT:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(ssh)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+":: :_falach__subcmd__ssh_commands" \
+"*::: :->ssh" \
+&& ret=0
+
+    case $state in
+    (ssh)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-ssh-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the destination vault]:VAULT:_default' \
+'--key-path=[Path to the existing private key to import]:KEY_PATH:_files' \
+'--comment=[Optional comment to attach to the entry]:COMMENT:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(load)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the source vault]:VAULT:_default' \
+'--uuid=[UUID of the SSH-key entry to load]:UUID:_default' \
+'--ttl=[TTL in seconds before ssh-agent expires the key]:TTL:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(generate)
+_arguments "${_arguments_options[@]}" : \
+'--vault=[Registry name of the destination vault]:VAULT:_default' \
+'--algorithm=[Algorithm (\`ed25519\` or \`rsa\`). Defaults to \`ed25519\` when implemented]:ALGORITHM:_default' \
+'--comment=[Optional comment to attach to the public key]:COMMENT:_default' \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__ssh__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-ssh-help-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(load)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(generate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Output format. \`human\` (default) is line-oriented for terminals; \`json\` is the stable machine-readable schema for scripts]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+'::shell -- Target shell to generate a completion script for:(bash elvish fish powershell zsh)' \
+&& ret=0
+;;
+(keys)
+_arguments "${_arguments_options[@]}" : \
+'--format=[Output format\: \`human\` (default) or \`json\`]:FORMAT:((human\:"Line-oriented human-readable output (default)"
+json\:"Stable JSON schema — see \`views/\` for per-subcommand shapes"))' \
+'--registry=[Path to the vault registry file. Defaults to \`\$HOME/.local/state/falach/vaults.toml\` (per \`falach_core\:\:FalachPaths\`)]:REGISTRY:_files' \
+'-h[Print help (see more with '\''--help'\'')]' \
+'--help[Print help (see more with '\''--help'\'')]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-help-command-$line[1]:"
+        case $line[1] in
+            (vault)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__help__subcmd__vault_commands" \
+"*::: :->vault" \
+&& ret=0
+
+    case $state in
+    (vault)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-help-vault-command-$line[1]:"
+        case $line[1] in
+            (create)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(open)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set-sync)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(set-lock)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(entry)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__help__subcmd__entry_commands" \
+"*::: :->entry" \
+&& ret=0
+
+    case $state in
+    (entry)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-help-entry-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(get)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(edit)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rm)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(list)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(search)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(gen)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__help__subcmd__gen_commands" \
+"*::: :->gen" \
+&& ret=0
+
+    case $state in
+    (gen)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-help-gen-command-$line[1]:"
+        case $line[1] in
+            (password)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(passphrase)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(sync)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(ssh)
+_arguments "${_arguments_options[@]}" : \
+":: :_falach__subcmd__help__subcmd__ssh_commands" \
+"*::: :->ssh" \
+&& ret=0
+
+    case $state in
+    (ssh)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:falach-help-ssh-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(load)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(generate)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(completions)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(keys)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_falach_commands] )) ||
+_falach_commands() {
+    local commands; commands=(
+'vault:Vault lifecycle and registration commands' \
+'entry:Secret-entry CRUD, search, and TOTP commands' \
+'gen:Password and passphrase generation' \
+'sync:Synchronise a vault with its configured S3 target' \
+'ssh:SSH key entry management' \
+'completions:Generate shell completion scripts' \
+'keys:Print the TUI'\''s effective keymap (command name, keys, description, group)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__completions_commands] )) ||
+_falach__subcmd__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach completions commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry_commands] )) ||
+_falach__subcmd__entry_commands() {
+    local commands; commands=(
+'add:Add a new entry to a vault' \
+'get:Get an entry by UUID or title' \
+'edit:Edit an existing entry' \
+'rm:Remove an entry (move to Recycle Bin by default)' \
+'list:List entries in a vault' \
+'search:Search entries' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach entry commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__add_commands] )) ||
+_falach__subcmd__entry__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry add commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__edit_commands] )) ||
+_falach__subcmd__entry__subcmd__edit_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry edit commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__get_commands] )) ||
+_falach__subcmd__entry__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry get commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help_commands] )) ||
+_falach__subcmd__entry__subcmd__help_commands() {
+    local commands; commands=(
+'add:Add a new entry to a vault' \
+'get:Get an entry by UUID or title' \
+'edit:Edit an existing entry' \
+'rm:Remove an entry (move to Recycle Bin by default)' \
+'list:List entries in a vault' \
+'search:Search entries' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach entry help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help__subcmd__add_commands] )) ||
+_falach__subcmd__entry__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry help add commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help__subcmd__edit_commands] )) ||
+_falach__subcmd__entry__subcmd__help__subcmd__edit_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry help edit commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help__subcmd__get_commands] )) ||
+_falach__subcmd__entry__subcmd__help__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry help get commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help__subcmd__help_commands] )) ||
+_falach__subcmd__entry__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry help help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help__subcmd__list_commands] )) ||
+_falach__subcmd__entry__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry help list commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help__subcmd__rm_commands] )) ||
+_falach__subcmd__entry__subcmd__help__subcmd__rm_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry help rm commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__help__subcmd__search_commands] )) ||
+_falach__subcmd__entry__subcmd__help__subcmd__search_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry help search commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__list_commands] )) ||
+_falach__subcmd__entry__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry list commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__rm_commands] )) ||
+_falach__subcmd__entry__subcmd__rm_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry rm commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__entry__subcmd__search_commands] )) ||
+_falach__subcmd__entry__subcmd__search_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach entry search commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__gen_commands] )) ||
+_falach__subcmd__gen_commands() {
+    local commands; commands=(
+'password:Generate a random password with selectable character classes' \
+'passphrase:Generate an EFF-large-wordlist diceware passphrase' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach gen commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__gen__subcmd__help_commands] )) ||
+_falach__subcmd__gen__subcmd__help_commands() {
+    local commands; commands=(
+'password:Generate a random password with selectable character classes' \
+'passphrase:Generate an EFF-large-wordlist diceware passphrase' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach gen help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__gen__subcmd__help__subcmd__help_commands] )) ||
+_falach__subcmd__gen__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach gen help help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__gen__subcmd__help__subcmd__passphrase_commands] )) ||
+_falach__subcmd__gen__subcmd__help__subcmd__passphrase_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach gen help passphrase commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__gen__subcmd__help__subcmd__password_commands] )) ||
+_falach__subcmd__gen__subcmd__help__subcmd__password_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach gen help password commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__gen__subcmd__passphrase_commands] )) ||
+_falach__subcmd__gen__subcmd__passphrase_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach gen passphrase commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__gen__subcmd__password_commands] )) ||
+_falach__subcmd__gen__subcmd__password_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach gen password commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help_commands] )) ||
+_falach__subcmd__help_commands() {
+    local commands; commands=(
+'vault:Vault lifecycle and registration commands' \
+'entry:Secret-entry CRUD, search, and TOTP commands' \
+'gen:Password and passphrase generation' \
+'sync:Synchronise a vault with its configured S3 target' \
+'ssh:SSH key entry management' \
+'completions:Generate shell completion scripts' \
+'keys:Print the TUI'\''s effective keymap (command name, keys, description, group)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__completions_commands] )) ||
+_falach__subcmd__help__subcmd__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help completions commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__entry_commands] )) ||
+_falach__subcmd__help__subcmd__entry_commands() {
+    local commands; commands=(
+'add:Add a new entry to a vault' \
+'get:Get an entry by UUID or title' \
+'edit:Edit an existing entry' \
+'rm:Remove an entry (move to Recycle Bin by default)' \
+'list:List entries in a vault' \
+'search:Search entries' \
+    )
+    _describe -t commands 'falach help entry commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__entry__subcmd__add_commands] )) ||
+_falach__subcmd__help__subcmd__entry__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help entry add commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__entry__subcmd__edit_commands] )) ||
+_falach__subcmd__help__subcmd__entry__subcmd__edit_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help entry edit commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__entry__subcmd__get_commands] )) ||
+_falach__subcmd__help__subcmd__entry__subcmd__get_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help entry get commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__entry__subcmd__list_commands] )) ||
+_falach__subcmd__help__subcmd__entry__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help entry list commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__entry__subcmd__rm_commands] )) ||
+_falach__subcmd__help__subcmd__entry__subcmd__rm_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help entry rm commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__entry__subcmd__search_commands] )) ||
+_falach__subcmd__help__subcmd__entry__subcmd__search_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help entry search commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__gen_commands] )) ||
+_falach__subcmd__help__subcmd__gen_commands() {
+    local commands; commands=(
+'password:Generate a random password with selectable character classes' \
+'passphrase:Generate an EFF-large-wordlist diceware passphrase' \
+    )
+    _describe -t commands 'falach help gen commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__gen__subcmd__passphrase_commands] )) ||
+_falach__subcmd__help__subcmd__gen__subcmd__passphrase_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help gen passphrase commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__gen__subcmd__password_commands] )) ||
+_falach__subcmd__help__subcmd__gen__subcmd__password_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help gen password commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__help_commands] )) ||
+_falach__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__keys_commands] )) ||
+_falach__subcmd__help__subcmd__keys_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help keys commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__ssh_commands] )) ||
+_falach__subcmd__help__subcmd__ssh_commands() {
+    local commands; commands=(
+'add:Add an SSH-key entry to a vault. (Slot — see \`features/ssh-keys/\`.)' \
+'load:Load an SSH key into ssh-agent with TTL. (Slot — see \`features/ssh-keys/\`.)' \
+'generate:Generate a new SSH keypair and store the private key. (Slot — see \`features/ssh-keys/\`.)' \
+    )
+    _describe -t commands 'falach help ssh commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__ssh__subcmd__add_commands] )) ||
+_falach__subcmd__help__subcmd__ssh__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help ssh add commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__ssh__subcmd__generate_commands] )) ||
+_falach__subcmd__help__subcmd__ssh__subcmd__generate_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help ssh generate commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__ssh__subcmd__load_commands] )) ||
+_falach__subcmd__help__subcmd__ssh__subcmd__load_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help ssh load commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__sync_commands] )) ||
+_falach__subcmd__help__subcmd__sync_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help sync commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__vault_commands] )) ||
+_falach__subcmd__help__subcmd__vault_commands() {
+    local commands; commands=(
+'create:Create a new vault and register it' \
+'open:Probe vault unlock with the given master password' \
+'list:List registered vaults' \
+'set-sync:Configure the S3 target for a vault' \
+'set-lock:Configure the per-vault idle-lock timeout' \
+    )
+    _describe -t commands 'falach help vault commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__vault__subcmd__create_commands] )) ||
+_falach__subcmd__help__subcmd__vault__subcmd__create_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help vault create commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__vault__subcmd__list_commands] )) ||
+_falach__subcmd__help__subcmd__vault__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help vault list commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__vault__subcmd__open_commands] )) ||
+_falach__subcmd__help__subcmd__vault__subcmd__open_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help vault open commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__vault__subcmd__set-lock_commands] )) ||
+_falach__subcmd__help__subcmd__vault__subcmd__set-lock_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help vault set-lock commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__help__subcmd__vault__subcmd__set-sync_commands] )) ||
+_falach__subcmd__help__subcmd__vault__subcmd__set-sync_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach help vault set-sync commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__keys_commands] )) ||
+_falach__subcmd__keys_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach keys commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh_commands] )) ||
+_falach__subcmd__ssh_commands() {
+    local commands; commands=(
+'add:Add an SSH-key entry to a vault. (Slot — see \`features/ssh-keys/\`.)' \
+'load:Load an SSH key into ssh-agent with TTL. (Slot — see \`features/ssh-keys/\`.)' \
+'generate:Generate a new SSH keypair and store the private key. (Slot — see \`features/ssh-keys/\`.)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach ssh commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__add_commands] )) ||
+_falach__subcmd__ssh__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach ssh add commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__generate_commands] )) ||
+_falach__subcmd__ssh__subcmd__generate_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach ssh generate commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__help_commands] )) ||
+_falach__subcmd__ssh__subcmd__help_commands() {
+    local commands; commands=(
+'add:Add an SSH-key entry to a vault. (Slot — see \`features/ssh-keys/\`.)' \
+'load:Load an SSH key into ssh-agent with TTL. (Slot — see \`features/ssh-keys/\`.)' \
+'generate:Generate a new SSH keypair and store the private key. (Slot — see \`features/ssh-keys/\`.)' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach ssh help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__help__subcmd__add_commands] )) ||
+_falach__subcmd__ssh__subcmd__help__subcmd__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach ssh help add commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__help__subcmd__generate_commands] )) ||
+_falach__subcmd__ssh__subcmd__help__subcmd__generate_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach ssh help generate commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__help__subcmd__help_commands] )) ||
+_falach__subcmd__ssh__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach ssh help help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__help__subcmd__load_commands] )) ||
+_falach__subcmd__ssh__subcmd__help__subcmd__load_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach ssh help load commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__ssh__subcmd__load_commands] )) ||
+_falach__subcmd__ssh__subcmd__load_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach ssh load commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__sync_commands] )) ||
+_falach__subcmd__sync_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach sync commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault_commands] )) ||
+_falach__subcmd__vault_commands() {
+    local commands; commands=(
+'create:Create a new vault and register it' \
+'open:Probe vault unlock with the given master password' \
+'list:List registered vaults' \
+'set-sync:Configure the S3 target for a vault' \
+'set-lock:Configure the per-vault idle-lock timeout' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach vault commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__create_commands] )) ||
+_falach__subcmd__vault__subcmd__create_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault create commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__help_commands] )) ||
+_falach__subcmd__vault__subcmd__help_commands() {
+    local commands; commands=(
+'create:Create a new vault and register it' \
+'open:Probe vault unlock with the given master password' \
+'list:List registered vaults' \
+'set-sync:Configure the S3 target for a vault' \
+'set-lock:Configure the per-vault idle-lock timeout' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'falach vault help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__help__subcmd__create_commands] )) ||
+_falach__subcmd__vault__subcmd__help__subcmd__create_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault help create commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__help__subcmd__help_commands] )) ||
+_falach__subcmd__vault__subcmd__help__subcmd__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault help help commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__help__subcmd__list_commands] )) ||
+_falach__subcmd__vault__subcmd__help__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault help list commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__help__subcmd__open_commands] )) ||
+_falach__subcmd__vault__subcmd__help__subcmd__open_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault help open commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__help__subcmd__set-lock_commands] )) ||
+_falach__subcmd__vault__subcmd__help__subcmd__set-lock_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault help set-lock commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__help__subcmd__set-sync_commands] )) ||
+_falach__subcmd__vault__subcmd__help__subcmd__set-sync_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault help set-sync commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__list_commands] )) ||
+_falach__subcmd__vault__subcmd__list_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault list commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__open_commands] )) ||
+_falach__subcmd__vault__subcmd__open_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault open commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__set-lock_commands] )) ||
+_falach__subcmd__vault__subcmd__set-lock_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault set-lock commands' commands "$@"
+}
+(( $+functions[_falach__subcmd__vault__subcmd__set-sync_commands] )) ||
+_falach__subcmd__vault__subcmd__set-sync_commands() {
+    local commands; commands=()
+    _describe -t commands 'falach vault set-sync commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_falach" ]; then
+    _falach "$@"
+else
+    compdef _falach falach
+fi

@@ -1,0 +1,180 @@
+[package]
+name = "falach-security"
+description = "Falach runtime safety behaviours: idle auto-lock, clipboard auto-clear, OS lock events."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Direct deps:
+#   - `arboard` (Phase 3) — cross-platform clipboard. Windows is out
+#     of scope for Falach (CLAUDE.md §"Target platforms"), so
+#     `arboard`'s Windows-only transitives never link in. We further
+#     thin the dep tree by disabling `default-features` and
+#     re-enabling only `wayland-data-control`; this drops `image-data`
+#     (we never copy images), shedding the `image` crate and its full
+#     color/encoding tree.
+#   - `signal-hook` (Phase 4) — POSIX signal handling without
+#     `unsafe`. `SigstopSource` uses `iterator::Signals` for catching
+#     SIGTSTP/SIGCONT and `low_level::raise` for re-raising SIGSTOP
+#     after the controller has been notified. Using signal-hook's
+#     `raise` lets us keep `nix` as a dev-only dep (down from the
+#     task plan's tentative "production OR dev" question).
+#   - `toml` (Phase 4) — required by `vault_lock::VaultLockConfig`
+#     for parsing `[vault.lock]` sub-tables out of
+#     `falach_core::RegisteredVault::extra`.
+#   - `serde` (Phase 4) — derives `Serialize` / `Deserialize` on
+#     `VaultLockConfig`.
+thiserror = "2.0"
+zeroize = { version = "1.8", features = ["derive"] }
+#   - `libc` (PMF-2) — `setrlimit(RLIMIT_CORE, 0)` core-dump suppression in
+#     `harden::harden_process`. Already vendored (a `falach-tui` dep); adding
+#     it here drags no new vendored crate.
+libc = "0.2"
+arboard = { version = "3", default-features = false, features = ["wayland-data-control"] }
+signal-hook = "0.3"
+toml = "0.8"
+serde = { version = "1", features = ["derive"] }
+
+# Phase 5 T5.1 — Linux logind via DBus.
+#
+# `zbus` is gated behind the `logind` cargo feature so the default
+# build does NOT pull it. Consumers that want screen-lock / suspend
+# detection on Linux enable `falach-security/logind`. Other platforms
+# (macOS) simply do not see this dependency.
+#
+# `default-features = false` drops zbus's optional adapters; we keep
+# only `async-io` (its lighter pure-Rust runtime — `tokio` would pull
+# `mio` + `parking_lot` + the full Tokio tree, none of which we need
+# for "open a connection, subscribe, drain signals"). Even with
+# `async-io`, we wrap zbus's blocking façade in `LogindSource` so the
+# crate does NOT expose async surface to consumers.
+[target.'cfg(target_os = "linux")'.dependencies]
+zbus = { version = "5", default-features = false, features = ["async-io"], optional = true }
+# `async-channel` and `futures-lite` are already in the vendored tree
+# as transitive deps of `zbus`. Declaring them directly (still gated
+# behind `dep:`) lets us race the signal streams against a shutdown
+# channel without pulling the heavyweight `futures` crate.
+async-channel = { version = "2", optional = true }
+futures-lite = { version = "2", default-features = false, optional = true }
+
+# Phase 5 T5.2 — macOS screen-lock / sleep detection via Apple
+# frameworks, bound through the `objc2` ecosystem.
+#
+# These crates are ALREADY in the vendored tree as `arboard`'s macOS
+# transitive deps (objc2 0.6.4, objc2-foundation/app-kit/core-foundation
+# 0.3.2); we pin to those exact versions so the `--offline --locked`
+# build resolves without a re-vendor. All four are MIT/Apache-2.0.
+#
+# Gated behind the default-off `iokit` cargo feature (see [features])
+# so a plain `cargo build` on macOS does NOT compile `os_events/macos.rs`
+# or its FFI. We deliberately do NOT enable the `block2` feature on
+# objc2-foundation: the observer is wired via objc2's `define_class!`
+# (target/selector), which needs no block runtime — keeping `block2`
+# out of the vendored tree entirely.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "=0.6.4", optional = true }
+objc2-foundation = { version = "=0.3.2", default-features = false, features = [
+    "NSObject",
+    "NSString",
+    "NSDictionary",
+    "NSNotification",
+    "NSDistributedNotificationCenter",
+], optional = true }
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = [
+    "NSWorkspace",
+], optional = true }
+objc2-core-foundation = { version = "=0.3.2", default-features = false, features = [
+    "CFRunLoop",
+    "CFString",
+    "CFDate",
+], optional = true }
+
+[dev-dependencies]
+# Phase 1 has no tempdir-using tests yet; promoted to dev-dep proactively
+# because Phase 2's `AutoLockController` integration tests will need it.
+tempfile = "3.10"
+
+# Phase 4 — `nix` is used only by the US-052 integration test and the
+# `sigstop_helper` binary, both for `sys::signal::kill` / `raise`. The
+# `signal` feature is the only feature we need; nix is already
+# vendored from the workspace's existing tree.
+nix = { version = "0.30", default-features = false, features = ["signal"] }
+
+# Workspace-local dev-dep — used by the per-vault-override US-051
+# cases (re-activated in Phase 4 T4.2) that load a `vaults.toml`
+# fixture via `falach_core::VaultRegistry::load`. This is the ONLY
+# place `falach-security` touches `falach-core`; the production
+# dep DAG stays decoupled (design §1.2).
+falach-core = { path = "../falach-core", version = "0.1" }
+
+[features]
+# Test-only feature gate. The `sigstop_helper` binary (declared
+# below) is built only when `--features test-binaries` is passed.
+# Mirrors `falach-core`'s convention for its `lock_holder` /
+# `fault_helper` / `vault_holder` test binaries; keeps the helper
+# out of the user-facing distribution.
+test-binaries = []
+
+# Test-only feature gate for the US-053 clipboard integration tests.
+# Those cases drive the real system clipboard (`arboard`), so they need
+# a usable display/pasteboard and must NOT be swept up by the blanket
+# `make test-ignored` (`cargo test --workspace -- --ignored`) run on
+# headless hosts (Linux without `xvfb`, macOS CLI). Gating the whole
+# test file behind this feature keeps it out of every build that does
+# not opt in — mirrors the `logind` precedent. `make test-clipboard`
+# enables it; nothing else does.
+clipboard-tests = []
+
+# Phase 5 T5.1 — opt-in Linux logind support via `zbus`. Default-off
+# so default `cargo build --workspace` does NOT pull the DBus
+# dependency tree. Consumers (frontends) that want screen-lock /
+# suspend detection on Linux pass `--features logind` (and naturally
+# their crate-level Cargo.toml propagates the feature).
+logind = ["dep:zbus", "dep:async-channel", "dep:futures-lite"]
+
+# Phase 5 T5.2 — opt-in macOS screen-lock / sleep detection via the
+# Apple frameworks (NSWorkspace will-sleep + the `com.apple.screenIsLocked`
+# distributed notification). Default-off so a plain `cargo build` does
+# NOT compile the FFI module or pull the objc2 deps as direct edges.
+# Consumers (frontends) that want OS lock-event detection on macOS pass
+# `--features iokit`.
+iokit = [
+    "dep:objc2",
+    "dep:objc2-foundation",
+    "dep:objc2-app-kit",
+    "dep:objc2-core-foundation",
+]
+
+# Helper binary for the US-052 integration test. Spawned by the test
+# via `env!("CARGO_BIN_EXE_sigstop_helper")`; communicates back via
+# stdout markers. Gated by the `test-binaries` feature so a plain
+# `cargo build --workspace` does not produce it.
+[[bin]]
+name = "sigstop_helper"
+path = "tests/bin/sigstop_helper.rs"
+required-features = ["test-binaries"]
+
+# Phase 5 T5.1 — Linux-only helper for US-052 post-MVP logind tests.
+# Mirrors `sigstop_helper`'s stdout-marker protocol, attaches a
+# `LogindSource` instead of `SigstopSource`. Built only when BOTH
+# `test-binaries` AND `logind` features are enabled.
+[[bin]]
+name = "logind_helper"
+path = "tests/bin/logind_helper.rs"
+required-features = ["test-binaries", "logind"]
+
+# Phase 5 T5.2 — macOS-only helper for US-052 post-MVP IOKit tests.
+# Mirrors `logind_helper`'s stdout-marker protocol, attaches an
+# `IoKitSource` instead of `LogindSource`. Built only when BOTH
+# `test-binaries` AND `iokit` features are enabled.
+[[bin]]
+name = "iokit_helper"
+path = "tests/bin/iokit_helper.rs"
+required-features = ["test-binaries", "iokit"]

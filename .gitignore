@@ -1,0 +1,23 @@
+# Cargo
+/target/
+**/*.rs.bk
+
+# Editor
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Local state (vault files, registries — never commit secrets)
+*.kdbx
+*.kdbx.bak
+*.keyfile
+vaults.toml
+
+# Local config overrides (keep .cargo/config.toml committed; ignore user overrides)
+/.cargo/config.toml.local
+
+# s3-sync integration fixtures — generated MinIO endpoint/credentials env file
+/tools/sync-tests/fixtures/.minio-env

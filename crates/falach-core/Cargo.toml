@@ -1,0 +1,66 @@
+[package]
+name = "falach-core"
+description = "Falach core library: KDBX vault I/O, registry, atomic writes, advisory locking."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+argon2 = { package = "rust-argon2", version = "3.0" }
+base32 = "=0.5.1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
+hmac = "=0.12.1"
+keepass = { version = "=0.12.9", features = ["save_kdbx4", "_merge"] }
+serde = { version = "1.0", features = ["derive"] }
+sha1 = "=0.10.6"
+sha2 = "0.11"
+tempfile = "3.10"
+thiserror = "2.0"
+toml = "0.8"
+uuid = { version = "1", features = ["serde", "v4"] }
+zeroize = { version = "1.8", features = ["derive"] }
+
+# Best-effort `mlock(2)`/`munlock(2)` of the master-password buffer
+# (CLAUDE.md security rule #2). Already a workspace dependency
+# (falach-security, falach-tui) — adds no new vendored crates.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+# Already in the workspace dep tree via `tempfile`; promoted here so the
+# property-based round-trip test (`tests/random_round_trip.rs`) can use it
+# directly. Test-only — does not affect production builds.
+fastrand = "2.4"
+
+# Test-only helper binary for cross-process locking tests.
+# Only compiled during `cargo test` (not during normal `cargo build`),
+# so it adds no overhead to production builds.
+[[bin]]
+name = "lock_holder"
+path = "tests/bin/lock_holder.rs"
+
+[[bin]]
+name = "fault_helper"
+path = "tests/bin/fault_helper.rs"
+
+[[bin]]
+name = "vault_holder"
+path = "tests/bin/vault_holder.rs"
+
+[[bin]]
+name = "falach-test-driver"
+path = "tests/bin/falach_test_driver.rs"
+
+[[bench]]
+name = "vault_open"
+harness = false
+
+[[bench]]
+name = "bench_search"
+harness = false

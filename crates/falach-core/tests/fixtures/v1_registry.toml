@@ -1,0 +1,23 @@
+# Test fixture: a vaults.toml at the current schema version (1) that
+# carries unknown top-level and per-vault keys. Used by registry tests
+# to verify forward-compat — keys vault-core does not recognize must
+# survive a load/save round-trip verbatim.
+
+version = 1
+
+# Unknown top-level table — must round-trip.
+[future_feature]
+foo = 1
+bar = "two"
+
+[[vault]]
+name = "personal"
+path = "/tmp/personal.kdbx"
+created_at = "2026-05-17T10:00:00-06:00"
+# Unknown per-vault scalar — must round-trip.
+note = "an unknown per-vault key — should survive load/save"
+
+# Unknown per-vault sub-table (matches the future [vault.sync] shape).
+[vault.sync]
+remote = "git@example:vault.git"
+branch = "main"

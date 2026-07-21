@@ -1,0 +1,16 @@
+# Offline / vendored-sources build configuration for Falach.
+#
+# All dependencies live in `vendor/` (checked into VCS, populated by
+# `cargo vendor`). Builds resolve through the local vendored tree only;
+# no network access is permitted at build time.
+#
+# To update or add dependencies, see CONTRIBUTING.md ("Adding a dependency").
+
+[net]
+offline = true
+
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"

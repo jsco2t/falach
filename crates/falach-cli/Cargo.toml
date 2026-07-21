@@ -1,0 +1,110 @@
+[package]
+name = "falach-cli"
+description = "Falach one-shot CLI — scriptable surface over falach-core, falach-genpw."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+# Single-binary crate: `falach`. `lib.rs` exposes the dispatcher entry
+# point so integration tests (which compile as separate binaries) can
+# exercise modules without going through the binary.
+[[bin]]
+name = "falach"
+path = "src/main.rs"
+
+[lib]
+name = "falach_cli"
+path = "src/lib.rs"
+
+[features]
+# Test-only gate for the `entry get --copy` clipboard hand-off
+# integration test. It spawns the binary, which opens the real system
+# clipboard via `arboard`, so it needs a usable display/pasteboard and
+# must NOT be swept up by `make test-ignored`
+# (`cargo test --workspace -- --ignored`) on headless hosts. Mirrors
+# `falach-security/clipboard-tests`; enabled only by `make test-clipboard`.
+clipboard-tests = []
+# Test-only gate for the live-wire `falach sync` end-to-end case
+# (`cli_sync_minio.rs`), which spawns the binary against a real MinIO. The
+# file is `#![cfg(feature = "minio-tests")]`-gated so the blanket
+# `make test` / `make test-ignored` sweeps never build it; only
+# `make test-s3-integration` (after `make minio-up`) turns it on. Mirrors
+# `falach-sync/minio-tests`.
+minio-tests = []
+
+[dependencies]
+# CLI parsing. `clap` is the project-standard parser (see CLAUDE.md
+# "Key libraries"). `derive` enables the struct/enum-based subcommand
+# tree; `wrap_help` is intentionally disabled to avoid the `terminal_size`
+# transitive (and the cfg-windows code paths Phase 0 doesn't ship to).
+clap = { version = "4.5", features = ["derive", "std", "help", "usage", "error-context", "suggestions"], default-features = false }
+
+# Shell-completion script generation for FR-064. Tracks clap's major.
+clap_complete = { version = "4.5", default-features = false }
+
+# Secure no-echo master-password prompt for FR-061. We use `nix` (a
+# safe Unix-only wrapper around `libc`) directly for the termios echo
+# toggle instead of `rpassword`. Rationale: `rpassword` pulls in
+# `rtoolbox` + the entire `windows-sys` family (`windows-targets`, both
+# 0.59 and 0.61 of `windows-sys`, plus 7 architecture-stub crates) via
+# its `cfg(windows)` branch — roughly 93 MB of vendored sources that
+# are never compiled on the project's supported targets (macOS +
+# Linux). `nix` ships only Unix bindings and keeps the workspace's
+# `forbid(unsafe_code)` posture intact (the unsafe lives inside `nix`).
+nix = { version = "0.30", default-features = false, features = ["term"] }
+
+# JSON output for FR-062. Already in the vendored tree (transitive of
+# `keepass`); promoted here as a direct dep so the dependency surface
+# is explicit.
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Sibling library crates this CLI dispatches into. The explicit
+# `version = "0.1"` keeps `cargo deny`'s wildcard-dep gate happy
+# (it treats bare `path = "..."` as a wildcard); the workspace
+# version pin still applies in practice.
+falach-core = { path = "../falach-core", version = "0.1" }
+falach-genpw = { path = "../falach-genpw", version = "0.1" }
+# Phase 1 — sync wiring for `falach sync` + `falach vault set-sync`
+# (features/cli-sync-wiring). Consumes `Sync::sync_now`,
+# `Sync::configure_remote`, `S3Config`, `CredentialSource`, and the
+# `SyncError` type — see design §2.4 + impl plan.
+falach-sync = { path = "../falach-sync", version = "0.1" }
+# Phase 3 — clipboard hand-off for `entry get --copy` / `gen --copy`
+# (FR-053). Consumes `Clipboard::copy_with_autoclear` +
+# `AutoClearGuard::wait_for_clear` — see design §2.5 + §3.9.
+falach-security = { path = "../falach-security", version = "0.1" }
+
+# Misc — all already in the workspace tree.
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
+thiserror = "2.0"
+toml = "0.8"
+uuid = { version = "1", features = ["serde", "v4"] }
+zeroize = { version = "1.8", features = ["derive"] }
+
+# Async-signal-safe echo restore for the no-echo prompt: a SIGINT /
+# SIGTERM during the prompt must restore the saved termios before the
+# process dies (RAII `Drop` does not run on signal death). The handler
+# mirrors falach-tui's `terminal_guard::signals` module; `libc` is
+# already a workspace dependency (falach-security, falach-tui).
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+# Integration tests use `std::process::Command` + `env!("CARGO_BIN_EXE_falach")`
+# directly rather than pulling in `assert_cmd` + `predicates` (which would
+# add ~15 transitives: bstr, doc-comment, predicates-{core,tree}, float-cmp,
+# normalize-line-endings, difflib, wait-timeout, anstyle, anstream, ...).
+# `std::process::Command` is sufficient for the assertions Phase 1 needs.
+tempfile = "3.10"
+# `secrecy` is already vendored (a `falach-sync` dep) — no new vendored
+# crates. Used only by `cli_set_sync.rs` to expose the decrypted secret
+# for the RST-CRED-1 round-trip assertion (proves the CORRECT secret was
+# sealed, not just that some ciphertext landed on disk).
+secrecy = "0.10"

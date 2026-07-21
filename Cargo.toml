@@ -1,0 +1,41 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/falach-core",
+    "crates/falach-security",
+    "crates/falach-genpw",
+    "crates/falach-sync",
+    "crates/falach-cli",
+    "crates/falach-tui",
+    "crates/falach-agent",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Jason <jsco2t@gmail.com>"]
+repository = "https://github.com/jsco2t/falach"
+# MSRV pinned to 1.89 — the release that stabilized std::fs::File::{lock,
+# lock_shared, try_lock, try_lock_shared, unlock} and `std::fs::TryLockError`,
+# which `falach-core::locking` uses directly (replacing the previous `fs2`
+# dependency, design §3.3 deviation recorded inline in `locking.rs`).
+rust-version = "1.89"
+
+[workspace.lints.rust]
+# `deny` (not `forbid`) so test-only code can opt in to unsafe (volatile
+# reads in zeroize-verification tests; std::env::set_var in env-mutating
+# tests). Production code in each crate root re-asserts `forbid` via
+# `#![cfg_attr(not(test), forbid(unsafe_code))]` — see crates/falach-core/src/lib.rs.
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

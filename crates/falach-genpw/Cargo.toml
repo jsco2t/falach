@@ -1,0 +1,24 @@
+[package]
+name = "falach-genpw"
+description = "Falach password and passphrase generation library."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Use `getrandom` directly rather than going through `rand` / `OsRng`:
+# `rand 0.8` pins `getrandom 0.2`, which would duplicate the `getrandom 0.4`
+# already in the workspace tree (via keepass-rs, tempfile, uuid). The
+# functional requirement (FR-023, "CSPRNG-backed generation") only needs
+# the OS CSPRNG; `OsRng` was just a thin wrapper. The cost of foregoing
+# `rand` is a ~20 LoC rejection-sampling helper for uniform-range
+# integers — see the lib.rs module docs.
+getrandom = "0.4"
+thiserror = "2.0"
+zeroize = { version = "1.8", features = ["derive"] }

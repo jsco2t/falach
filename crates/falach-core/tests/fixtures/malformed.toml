@@ -1,0 +1,6 @@
+# Test fixture: deliberately invalid TOML. Used to verify the load
+# path surfaces `VaultError::RegistryMalformed { source: Some(_) }`
+# rather than panicking or producing an empty registry. An unterminated
+# string is the simplest unambiguous parser error.
+
+version = "unterminated

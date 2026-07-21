@@ -1,0 +1,11 @@
+# Test fixture: vaults.toml claiming a future schema version. Used to
+# verify that the registry refuses to read a newer file rather than
+# silently truncating it on re-save (forward-compat in the other
+# direction — protects users who downgrade).
+
+version = 99
+
+[[vault]]
+name = "future"
+path = "/tmp/future.kdbx"
+created_at = "2026-05-17T10:00:00-06:00"

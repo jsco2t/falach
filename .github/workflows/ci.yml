@@ -1,0 +1,161 @@
+# Falach CI.
+#
+# Build, lint, test, docs, supply-chain checks, and KeePassXC interop all run
+# through the top-level Makefile so local and CI workflows stay aligned.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  vault-core:
+    name: vault-core (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        run: rustup show
+
+      - name: Install KeePassXC CLI (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y keepassxc
+
+      - name: Install KeePassXC CLI (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install --cask keepassxc
+          if ! command -v keepassxc-cli >/dev/null 2>&1; then
+            sudo ln -s /Applications/KeePassXC.app/Contents/MacOS/keepassxc-cli /usr/local/bin/keepassxc-cli
+          fi
+
+      - name: Check KeePassXC CLI
+        run: keepassxc-cli --version
+
+      - name: Install cargo-deny
+        working-directory: /tmp
+        env:
+          CARGO_NET_OFFLINE: "false"
+          RUSTUP_TOOLCHAIN: "1.95.0"
+        run: cargo install --locked cargo-deny --version 0.19.6
+
+      - name: Install cargo-audit
+        working-directory: /tmp
+        env:
+          CARGO_NET_OFFLINE: "false"
+          RUSTUP_TOOLCHAIN: "1.95.0"
+        run: cargo install --locked cargo-audit --version 0.22.1
+
+      - name: Format check
+        run: make fmt-check
+
+      - name: Lint
+        run: make lint
+
+      - name: Build
+        run: make build
+
+      # Type-check the platform-gated os_events modules (iokit via the
+      # apple cross-targets, natively on the macOS leg) — the drift gate
+      # `make check` bundles locally.
+      - name: macOS os_events drift gate
+        run: make check-macos
+
+      # Compile the feature-gated test suites (clipboard, OS-event
+      # helpers) that no runtime CI sweep builds, so refactors can't
+      # silently break them.
+      - name: Feature-gated test compile gate
+        run: make check-feature-gates
+
+      - name: Shell completions drift gate
+        run: make completions-check
+
+      - name: Test
+        run: make test
+
+      - name: Ignored tests
+        run: make test-ignored
+
+      - name: API docs
+        run: make doc
+
+      - name: Supply-chain policy check
+        run: make deny
+
+      - name: RustSec advisory check
+        run: make audit
+
+      - name: KeePassXC interop (vault-core)
+        run: make interop
+
+      - name: Install oathtool (Ubuntu)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y oathtool
+
+      - name: Install oathtool (macOS)
+        if: runner.os == 'macOS'
+        run: brew install oath-toolkit
+
+      - name: KeePassXC interop (entry-management)
+        run: make interop-entry
+
+      - name: KeePassXC interop (sync merge / US-044)
+        run: make interop-sync
+
+      - name: NFR-002 search benchmark gate
+        env:
+          # Cloud runners are noisier than dev hardware; allow 50% headroom
+          # over the 50ms PRD budget. Local `make bench-search-gate` runs
+          # at the tight 50ms budget by default.
+          BUDGET_MS: "75"
+        run: make bench-search-gate
+
+      - name: Informational benchmark
+        continue-on-error: true
+        run: make bench
+
+  # MinIO live-wire integration (s3-sync T6.2). Linux-only: GitHub's
+  # macOS runners have no Docker, so the #[ignore]-gated MINIO-* tests
+  # can't run there (the `vault-core` job's individual make targets all
+  # skip them — the MINIO cases only compile under `--features
+  # minio-tests`). Uses the same make targets as local dev, so CI and
+  # local runs are identical (CLAUDE.md CI/dev-parity rule).
+  integration-s3:
+    name: integration-s3 (ubuntu)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned toolchain
+        run: rustup show
+
+      - name: Install MinIO client (mc)
+        run: |
+          curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o "$RUNNER_TEMP/mc"
+          chmod +x "$RUNNER_TEMP/mc"
+          sudo mv "$RUNNER_TEMP/mc" /usr/local/bin/mc
+          mc --version
+
+      - name: Start MinIO
+        run: make minio-up
+
+      - name: S3 integration tests (MINIO-*)
+        run: make test-s3-integration
+
+      - name: Stop MinIO
+        if: always()
+        run: make minio-down

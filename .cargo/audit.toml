@@ -1,0 +1,17 @@
+# cargo-audit configuration for Falach.
+#
+# `make audit` runs `cargo audit`, the second RustSec gate alongside
+# `make deny` (`cargo deny check`). The two tools read the same advisory DB
+# but SEPARATE ignore lists, so any accepted advisory must be listed in BOTH
+# this file and deny.toml's `[advisories].ignore`. See deny.toml for the full
+# justification of each entry below — keep the two lists in sync.
+
+[advisories]
+# RUSTSEC-2026-0194 / RUSTSEC-2026-0195 — quick-xml CPU / memory-exhaustion DoS,
+# fixed in quick-xml >= 0.41.0. Pulled transitively via wayland-scanner
+# (build-time codegen over trusted crate-shipped protocol XML; no published
+# release moves to 0.41) and via keepass 0.12.9 (the keepass 0.13 bump to
+# quick-xml 0.41 is a major core-KDBX-library change tracked as a follow-up).
+# Residual exposure is a low-severity DoS reachable only via a maliciously
+# crafted vault — no data loss, no RCE. See deny.toml for the full rationale.
+ignore = ["RUSTSEC-2026-0194", "RUSTSEC-2026-0195"]

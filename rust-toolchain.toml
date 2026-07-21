@@ -1,0 +1,11 @@
+[toolchain]
+channel = "1.95.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"
+# Phase 0 targets (per CLAUDE.md §"Target platforms"). Linux is the
+# default host; macOS targets are declared so `make check-macos`
+# can type-check the platform-gated `os_events/macos.rs` module
+# (Phase 5 T5.2) from a Linux build host. This is a Level-1 gate —
+# `cargo check` only; no link, no SDK required. See Makefile
+# `check-macos` for the invocation.
+targets = ["aarch64-apple-darwin", "x86_64-apple-darwin"]

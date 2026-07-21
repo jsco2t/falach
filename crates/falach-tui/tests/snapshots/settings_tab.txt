@@ -1,0 +1,16 @@
+┌Settings────────────────────────────────────────┐
+│> Default sort: Recently used                   │
+│  Theme: default-dark                           │
+│  Auto-lock: 10 min                             │
+│  Auto-sync on unlock: [ ] off                  │
+│  Auto-sync on lock/quit: [ ] off               │
+│  Configure sync target…                        │
+└────────────────────────────────────────────────┘
+┌Status──────────────────────────────────────────┐
+│Keymap preset: vim  (config.toml [keymap])      │
+│Config file:                                    │
+│/home/user/.config/falach/config.toml           │
+│                                                │
+│Target: (no sync target configured)             │
+│Last sync: —                                    │
+└────────────────────────────────────────────────┘
