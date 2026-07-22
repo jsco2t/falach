@@ -21,3 +21,6 @@ vaults.toml
 
 # s3-sync integration fixtures — generated MinIO endpoint/credentials env file
 /tools/sync-tests/fixtures/.minio-env
+
+# ignore the demo database lock file
+test-vaults/demo.kdbx.lock
