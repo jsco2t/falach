@@ -60,9 +60,12 @@ fi
 
 # 3. KeePassXC cross-check uses the live system clock — race-tolerant.
 #    Capture `now`, ask both falach and KeePassXC for the live code, and
-#    accept either the current or next-second window to absorb a boundary.
+#    accept either the current or next TOTP window. We use now+period
+#    (not now+1) because the two falach invocations plus keepassxc-cli's
+#    Argon2id decrypt can consume several seconds — enough to cross a
+#    30-second window boundary that a 1-second offset would miss.
 now=$(date +%s)
-next=$((now + 1))
+next=$((now + 30))
 falach_now=$(printf '%s\n' "$PASSWORD" | "$DRIVER" entry totp \
     --vault "$vault" --uuid "$uuid" --at "$now" | jq -r .code)
 falach_next=$(printf '%s\n' "$PASSWORD" | "$DRIVER" entry totp \
