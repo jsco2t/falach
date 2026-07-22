@@ -15,11 +15,11 @@ use std::path::PathBuf;
 
 /// ASCII-art banner shown above every `falach --help` output.
 pub const BANNER: &str = r"
-    ____   \                _
-   / __ \__  ______  ____ _(_)_______
-  / /_/ / / / / __ \/ __ `/ / ___/ _ \
- / _, _/ /_/ / / / / /_/ / / /  /  __/
-/_/ |_|\__,_/_/ /_/\__,_/_/_/   \___/
+    ______      __           __
+   / ____/___ _/ /___ ______/ /_
+  / /_  / __ `/ / __ `/ ___/ __ \
+ / __/ / /_/ / / /_/ / /__/ / / /
+/_/    \__,_/_/\__,_/\___/_/ /_/
 
 ";
 
@@ -622,12 +622,12 @@ mod tests {
     #[test]
     fn banner_starts_with_falach_logo_first_glyph() {
         // The banner is a 5-line ASCII rendering whose first non-empty
-        // line begins with whitespace + the "R" top stroke `____`. This
+        // line begins with whitespace + the "F" top stroke `______`. This
         // test guards against accidental trimming.
         let first_real_line = BANNER.lines().find(|l| !l.trim().is_empty()).unwrap();
         assert!(
             first_real_line.contains("____"),
-            "banner first line should start with R glyph: {first_real_line:?}"
+            "banner first line should start with F glyph: {first_real_line:?}"
         );
     }
 

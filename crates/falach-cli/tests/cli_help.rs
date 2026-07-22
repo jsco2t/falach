@@ -23,10 +23,10 @@ fn top_level_help_contains_ascii_art_banner() {
     // actually wiring it onto the help output.
     let (code, stdout, _stderr) = run_args(&["--help"]);
     assert_eq!(code, 0);
-    // Pick a glyph fragment that's unmistakable — the slash run from
-    // the bottom-left of the "R".
+    // Pick a glyph fragment that's unmistakable — the bottom row of the
+    // "Falach" slant logo.
     assert!(
-        stdout.contains("/_/ |_|"),
+        stdout.contains("/_/    \\__,_/"),
         "expected ASCII-art banner on --help; got:\n{stdout}"
     );
 }
