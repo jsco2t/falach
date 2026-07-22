@@ -1,0 +1,24 @@
+[package]
+name = "falach-api"
+description = "FFI boundary crate for the Falach Flutter app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[dependencies]
+falach-core = { path = "../falach-core", version = "0.1" }
+falach-genpw = { path = "../falach-genpw", version = "0.1" }
+falach-sync = { path = "../falach-sync", version = "0.1" }
+falach-security = { path = "../falach-security", version = "0.1" }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+thiserror = "2.0"
+zeroize = { version = "1", features = ["derive"] }
+
+[lints]
+workspace = true

@@ -5,6 +5,7 @@ members = [
     "crates/falach-security",
     "crates/falach-genpw",
     "crates/falach-sync",
+    "crates/falach-api",
     "crates/falach-cli",
     "crates/falach-tui",
     "crates/falach-agent",

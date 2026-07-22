@@ -991,6 +991,19 @@ name = "falach-agent"
 version = "0.1.0"
 
 [[package]]
+name = "falach-api"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "falach-core",
+ "falach-genpw",
+ "falach-security",
+ "falach-sync",
+ "thiserror 2.0.18",
+ "zeroize",
+]
+
+[[package]]
 name = "falach-cli"
 version = "0.1.0"
 dependencies = [
