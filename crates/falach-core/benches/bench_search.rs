@@ -2,7 +2,9 @@ use std::time::{Duration, Instant};
 
 use falach_core::{fields, fuzzy_match, Database, SearchOptions, Vault};
 
-const SAMPLE_COUNT: usize = 30;
+// An odd count makes the observed middle sample the exact median. With 51
+// samples, nearest-rank p99 is still the maximum sample.
+const SAMPLE_COUNT: usize = 51;
 
 fn main() {
     let mut db = Database::new();
@@ -63,9 +65,12 @@ where
 
 fn print_summary(name: &str, samples: &[Duration]) {
     let median = samples[samples.len() / 2];
+    let p99_rank = (samples.len() * 99).div_ceil(100);
+    let p99 = samples[p99_rank - 1];
     let max = samples.last().copied().unwrap_or(Duration::ZERO);
 
     println!("{name}_median_ms={:.2}", ms(median));
+    println!("{name}_p99_ms={:.2}", ms(p99));
     println!("{name}_max_ms={:.2}", ms(max));
     println!("{name}_samples_ms={}", sample_list(samples));
 }

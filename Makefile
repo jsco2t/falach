@@ -30,7 +30,7 @@ UNAME_S        := $(shell uname -s)
 .PHONY: help toolchain build test test-ignored test-all test-update-snapshots test-clipboard test-os-events \
         test-sigv4 minio-up minio-down test-s3-integration interop-sync \
         fmt fmt-check lint lint-fix check-feature-gates \
-        check verify interop interop-entry bench bench-search bench-search-gate \
+        check verify interop interop-entry bench bench-search bench-search-gate bench-search-gate-ci \
         vendor deny audit doc clean completions completions-check run-tui \
         snapshots-check
 
@@ -273,8 +273,11 @@ bench:  ## Run informational benchmarks.
 bench-search:  ## Run the informational entry-search benchmark.
 	$(CARGO) bench -p falach-core --bench bench_search --offline --locked
 
-bench-search-gate:  ## NFR-002 gate: fail if entry-search exceeds the latency budget (BUDGET_MS overridable; fuzzy also warns above FUZZY_WARN_MS).
-	tools/bench/bench_search_gate.sh
+bench-search-gate:  ## Local NFR-002 gate: p99 must stay within 50ms (BUDGET_MS overridable).
+	BENCH_STAT=p99 tools/bench/bench_search_gate.sh
+
+bench-search-gate-ci:  ## Hosted-CI search gate: median within 75ms; report p99 against the 50ms NFR.
+	BENCH_STAT=median BUDGET_MS="$${BUDGET_MS:-75}" tools/bench/bench_search_gate.sh
 
 # ---------------------------------------------------------------------------
 # Supply-chain and docs.
