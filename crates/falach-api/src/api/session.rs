@@ -6,7 +6,6 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use falach_core::{FalachPaths, Keyfile, MasterPassword, Vault, VaultRegistry};
 use falach_security::{AutoLockConfig, AutoLockController, LockState, OsLockReason};
-use zeroize::Zeroize;
 
 use crate::dto::{AppInitConfig, KeyfileRef, LifecycleStateDto, LockEvent, VaultTree};
 use crate::error::FalachApiError;
@@ -58,11 +57,8 @@ struct SessionCredentials {
 
 // MasterPassword and Keyfile both implement ZeroizeOnDrop individually.
 // SessionCredentials owns them; dropping it drops them, which zeroizes.
-// No additional Zeroize impl is needed — ownership-based zeroize.
 impl Drop for SessionCredentials {
     fn drop(&mut self) {
-        // Fields are dropped (and therefore zeroized) automatically.
-        // Explicit take ensures deterministic ordering.
         drop(self.keyfile.take());
     }
 }
@@ -85,6 +81,8 @@ struct SessionState {
     #[allow(dead_code)] // T1.6 sync support
     lock_pending: bool,
     lock_sink: Option<Box<dyn EventSink<LockEvent>>>,
+    dead: bool,
+    lifecycle_enabled: bool,
 }
 
 impl SessionState {
@@ -104,6 +102,13 @@ impl SessionState {
     fn is_unlocked(&self) -> bool {
         self.vault.is_some()
     }
+
+    fn kill(&mut self) {
+        self.vault = None;
+        self.credentials = None;
+        self.dead = true;
+        self.push_lock_event(LockEvent::Locked);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -122,6 +127,12 @@ pub struct AppSession {
     test_last_seen: Mutex<i64>,
 }
 
+impl Drop for AppSession {
+    fn drop(&mut self) {
+        self.shutdown();
+    }
+}
+
 impl std::fmt::Debug for AppSession {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AppSession")
@@ -133,7 +144,8 @@ impl std::fmt::Debug for AppSession {
     }
 }
 
-pub fn init_app(cfg: &AppInitConfig) -> Result<AppSession, FalachApiError> {
+#[allow(clippy::needless_pass_by_value)] // frb FFI passes owned DTOs
+pub fn init_app(cfg: AppInitConfig) -> Result<AppSession, FalachApiError> {
     HARDENED.get_or_init(|| {
         falach_security::harden_process();
     });
@@ -162,6 +174,8 @@ pub fn init_app(cfg: &AppInitConfig) -> Result<AppSession, FalachApiError> {
         controller,
         lock_pending: false,
         lock_sink: None,
+        dead: false,
+        lifecycle_enabled: false,
     };
 
     let inner = Arc::new(Mutex::new(state));
@@ -208,11 +222,11 @@ impl AppSession {
     #[allow(clippy::needless_pass_by_value)] // frb FFI passes owned values
     pub fn unlock(
         &self,
-        name: &str,
+        name: String,
         master_password: String,
         keyfile: Option<KeyfileRef>,
     ) -> Result<VaultTree, FalachApiError> {
-        let mut master = MasterPassword::new(master_password);
+        let master = MasterPassword::new(master_password);
         let kf = keyfile.as_ref().map(|kr| match kr {
             KeyfileRef::Path(p) => Keyfile::Path(PathBuf::from(p)),
             KeyfileRef::Bytes(b) => Keyfile::Bytes(b.clone()),
@@ -220,8 +234,13 @@ impl AppSession {
 
         let mut state = self.lock_state();
 
+        if state.dead {
+            return Err(FalachApiError::Internal {
+                context: "session is shut down".to_string(),
+            });
+        }
+
         if state.is_unlocked() {
-            master.zeroize();
             return Err(FalachApiError::Internal {
                 context: "a vault is already unlocked".to_string(),
             });
@@ -229,10 +248,8 @@ impl AppSession {
 
         let vault_path = state
             .registry
-            .get(name)
-            .ok_or_else(|| FalachApiError::FileNotFound {
-                path: name.to_string(),
-            })?
+            .get(&name)
+            .ok_or_else(|| FalachApiError::FileNotFound { path: name.clone() })?
             .path
             .clone();
 
@@ -272,6 +289,7 @@ impl AppSession {
             if state.is_unlocked() {
                 state.do_lock();
             }
+            state.dead = true;
         }
 
         if let Ok(mut guard) = self.ticker_join.lock() {
@@ -284,9 +302,7 @@ impl AppSession {
     fn lock_state(&self) -> MutexGuard<'_, SessionState> {
         self.inner.lock().unwrap_or_else(|poison| {
             let mut state = poison.into_inner();
-            state.vault = None;
-            state.credentials = None;
-            state.push_lock_event(LockEvent::Locked);
+            state.kill();
             state
         })
     }
@@ -294,48 +310,39 @@ impl AppSession {
 
 // ---------------------------------------------------------------------------
 // Test-only API — manual tick driving without wall-clock sleeps.
-// Moved to `test-fixtures` feature in T1.7.
 // ---------------------------------------------------------------------------
 
 #[cfg(any(test, feature = "test-fixtures"))]
 #[allow(clippy::missing_panics_doc)]
 impl AppSession {
     pub fn for_test(paths: FalachPaths) -> Result<Self, FalachApiError> {
-        let registry = VaultRegistry::load(paths)?;
-        let controller = AutoLockController::new(AutoLockConfig::default()).map_err(|e| {
-            FalachApiError::Internal {
-                context: format!("controller init: {e}"),
-            }
-        })?;
-
-        let state = SessionState {
-            registry,
-            vault: None,
-            credentials: None,
-            controller,
-            lock_pending: false,
-            lock_sink: None,
-        };
-
-        Ok(Self {
-            inner: Arc::new(Mutex::new(state)),
-            last_activity: Arc::new(AtomicI64::new(0)),
-            lifecycle_state: Arc::new(AtomicU8::new(0)),
-            ticker_shutdown: Arc::new(AtomicBool::new(false)),
-            ticker_join: Mutex::new(None),
-            #[cfg(any(test, feature = "test-fixtures"))]
-            test_grace_start: Mutex::new(None),
-            #[cfg(any(test, feature = "test-fixtures"))]
-            test_last_seen: Mutex::new(0),
-        })
+        Self::for_test_inner(paths, AutoLockConfig::default(), false)
     }
 
     pub fn for_test_with_timeout(
         paths: FalachPaths,
         idle_timeout: Duration,
     ) -> Result<Self, FalachApiError> {
+        Self::for_test_inner(paths, AutoLockConfig { idle_timeout }, false)
+    }
+
+    pub fn for_test_mobile(paths: FalachPaths) -> Result<Self, FalachApiError> {
+        Self::for_test_inner(paths, AutoLockConfig::default(), true)
+    }
+
+    pub fn for_test_mobile_with_timeout(
+        paths: FalachPaths,
+        idle_timeout: Duration,
+    ) -> Result<Self, FalachApiError> {
+        Self::for_test_inner(paths, AutoLockConfig { idle_timeout }, true)
+    }
+
+    fn for_test_inner(
+        paths: FalachPaths,
+        config: AutoLockConfig,
+        lifecycle_enabled: bool,
+    ) -> Result<Self, FalachApiError> {
         let registry = VaultRegistry::load(paths)?;
-        let config = AutoLockConfig { idle_timeout };
         let controller = AutoLockController::new(config).map_err(|e| FalachApiError::Internal {
             context: format!("controller init: {e}"),
         })?;
@@ -347,6 +354,8 @@ impl AppSession {
             controller,
             lock_pending: false,
             lock_sink: None,
+            dead: false,
+            lifecycle_enabled,
         };
 
         Ok(Self {
@@ -355,9 +364,7 @@ impl AppSession {
             lifecycle_state: Arc::new(AtomicU8::new(0)),
             ticker_shutdown: Arc::new(AtomicBool::new(false)),
             ticker_join: Mutex::new(None),
-            #[cfg(any(test, feature = "test-fixtures"))]
             test_grace_start: Mutex::new(None),
-            #[cfg(any(test, feature = "test-fixtures"))]
             test_last_seen: Mutex::new(0),
         })
     }
@@ -385,6 +392,14 @@ impl AppSession {
 
     pub fn has_credentials(&self) -> bool {
         self.lock_state().credentials.is_some()
+    }
+
+    pub fn is_dead(&self) -> bool {
+        self.lock_state().dead
+    }
+
+    pub fn ticker_is_joined(&self) -> bool {
+        self.ticker_join.lock().is_ok_and(|g| g.is_none())
     }
 
     pub fn hold_mutex_for_test(&self) -> impl Drop + '_ {
@@ -418,8 +433,14 @@ fn spawn_ticker(
                 let activity_millis = last_activity.load(Ordering::Relaxed);
                 let lifecycle = lifecycle_from_u8(lifecycle_state.load(Ordering::Relaxed));
 
-                let Ok(mut state) = inner.try_lock() else {
-                    continue;
+                let mut state = match inner.try_lock() {
+                    Ok(guard) => guard,
+                    Err(std::sync::TryLockError::WouldBlock) => continue,
+                    Err(std::sync::TryLockError::Poisoned(p)) => {
+                        let mut s = p.into_inner();
+                        s.kill();
+                        break;
+                    }
                 };
 
                 tick_inner(
@@ -452,26 +473,28 @@ fn tick_inner(
 
     let mut should_lock = false;
 
-    match lifecycle {
-        LifecycleStateDto::Resumed => {
-            if grace_start.take().is_some() {
-                state.controller.register_activity(now);
-            }
-        }
-        LifecycleStateDto::Inactive => {}
-        LifecycleStateDto::Hidden | LifecycleStateDto::Paused => {
-            if grace_start.is_none() {
-                *grace_start = Some(now);
-            } else if let Some(started) = *grace_start {
-                if now.duration_since(started) >= Duration::from_secs(LIFECYCLE_GRACE_SECS) {
-                    should_lock = true;
-                    *grace_start = None;
+    if state.lifecycle_enabled {
+        match lifecycle {
+            LifecycleStateDto::Resumed => {
+                if grace_start.take().is_some() {
+                    state.controller.register_activity(now);
                 }
             }
-        }
-        LifecycleStateDto::Detached => {
-            should_lock = true;
-            *grace_start = None;
+            LifecycleStateDto::Inactive => {}
+            LifecycleStateDto::Hidden | LifecycleStateDto::Paused => {
+                if grace_start.is_none() {
+                    *grace_start = Some(now);
+                } else if let Some(started) = *grace_start {
+                    if now.duration_since(started) >= Duration::from_secs(LIFECYCLE_GRACE_SECS) {
+                        should_lock = true;
+                        *grace_start = None;
+                    }
+                }
+            }
+            LifecycleStateDto::Detached => {
+                should_lock = true;
+                *grace_start = None;
+            }
         }
     }
 
