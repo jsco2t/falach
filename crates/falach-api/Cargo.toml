@@ -21,5 +21,13 @@ flutter_rust_bridge = "=2.12.0"
 thiserror = "2.0"
 zeroize = { version = "1", features = ["derive"] }
 
+[features]
+test-fixtures = []
+
+[dev-dependencies]
+falach-api = { path = ".", features = ["test-fixtures"] }
+tempfile = "3"
+toml = "0.8"
+
 [lints]
 workspace = true

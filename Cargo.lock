@@ -1112,12 +1112,15 @@ name = "falach-api"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "falach-api",
  "falach-core",
  "falach-genpw",
  "falach-security",
  "falach-sync",
  "flutter_rust_bridge",
+ "tempfile",
  "thiserror 2.0.18",
+ "toml",
  "zeroize",
 ]
 
