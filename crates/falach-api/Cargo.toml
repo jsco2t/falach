@@ -17,6 +17,7 @@ falach-genpw = { path = "../falach-genpw", version = "0.1" }
 falach-sync = { path = "../falach-sync", version = "0.1" }
 falach-security = { path = "../falach-security", version = "0.1" }
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+flutter_rust_bridge = "=2.12.0"
 thiserror = "2.0"
 zeroize = { version = "1", features = ["derive"] }
 

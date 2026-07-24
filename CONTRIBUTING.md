@@ -21,23 +21,21 @@ Authoritative source documents (read these for scope):
 falach/
 ├── Cargo.toml                # workspace manifest, resolver = "2"
 ├── Cargo.lock                # pinned, source of truth, checked in
-├── rust-toolchain.toml       # pinned channel
-├── deny.toml                 # cargo-deny config
+├── rust-toolchain.toml       # pinned channel + cross-compile targets
+├── .flutter-version          # pinned Flutter SDK version
+├── deny.toml                 # cargo-deny config (8 target triples)
 ├── .cargo/config.toml        # offline + vendored-sources
-├── vendor/                   # all dependencies, checked in
+├── vendor/                   # all Rust dependencies, checked in
 ├── .github/workflows/        # CI
 ├── crates/
 │   ├── falach-core/         # library — KDBX I/O, registry, atomic, locking
-│   ├── falach-cli/          # placeholder binary
-│   ├── falach-tui/          # placeholder binary
+│   ├── falach-api/          # FFI boundary crate for the Flutter app
+│   ├── falach-cli/          # CLI frontend
+│   ├── falach-tui/          # TUI frontend
 │   └── falach-agent/        # placeholder binary
 └── tools/
     └── interop-tests/        # bash harness, arrives in Phase 6
 ```
-
-Only `falach-core` is implemented in Phase 0. The three binary crates are
-stubs reserved for later features and must not be deleted (the layout is
-part of the workspace contract).
 
 ---
 
@@ -167,6 +165,57 @@ CI gates merge on `make deny` (license + advisory + bans) and
 Direct dependencies added through the workflow above, newest first. Each line
 records the review at its add point; transitive crates are covered en masse by
 `make deny` (license + bans) over the four Phase-0 targets.
+
+#### `falach-api` — `flutter_rust_bridge` runtime (flutter-app T2.1, 2026-07-22)
+
+The FFI bridge runtime for the Flutter alpha app. Pinned at exactly `=2.12.0`
+(the latest stable; released 2026-03-29). This is one of the **triple-pin** —
+the Rust runtime crate, the Dart pub package (`app/pubspec.yaml`, T2.4), and
+the codegen CLI tool (`install-toolchain.sh`) must always be the same version.
+
+| Crate | Ver | License | Maintenance / popularity | Notes |
+| --- | --- | --- | --- | --- |
+| `flutter_rust_bridge` | =2.12.0 | MIT | De-facto standard Rust↔Flutter codegen bridge; large active community (~5.8M downloads). | Runtime crate only — codegen output arrives in T2.3. `default-features` used (includes the thread pool, opaque handles, streams, and `allo-isolate` FFI glue). |
+
+**Transitive count:** 52 unique crates in frb's dependency tree (including
+itself). **Vendor footprint:** 30 new directories (424 → 454 total), of which
+~6 are off-target placeholders: `android_logger`, `android_log-sys`, `oslog`
+(mobile logging), `console_error_panic_hook`, `wasm-bindgen-futures`, `web-sys`
+(wasm — never compiled for our targets). The remainder are genuine runtime
+transitive deps: `allo-isolate` (Dart isolate FFI, Apache-2.0), `dart-sys`
+(Dart VM FFI types, MIT), `futures` family (MIT/Apache-2.0), `tokio` (MIT —
+frb's thread pool), `threadpool` (MIT/Apache-2.0), `backtrace` + `addr2line`
+(MIT/Apache-2.0, debug helpers).
+
+**Hand-roll assessment:** not viable. frb generates ~10k lines of FFI glue
+(Dart bindings, Rust codec, type marshalling, isolate dispatch, StreamSink
+plumbing) from annotated Rust source. Reproducing this by hand would be a
+multi-month effort with no maintenance story. The survey
+(`research/rust-flutter-bridge-and-ui-survey.md` §A.1) evaluated manual
+`dart:ffi`, `uniffi-rs-dart`, and `rinf` and selected frb v2 on feature
+coverage + community + type safety.
+
+**Supply-chain notes:**
+- `allo-isolate` declares `license-file = "LICENSE"` (Apache-2.0) instead of
+  the `license` field; `cargo deny` warns but accepts it via confidence
+  threshold.
+- No `build.rs` networking in any new vendored crate.
+- `make deny` green with expanded targets (8 triples: 4 desktop + 4 mobile).
+- `make audit` clean.
+- Banned-crate scan: no `openssl`/`native-tls`/`aws-lc-rs`/`webpki-roots`/
+  `git2`/`libgit2-sys` in the graph.
+
+**Cargokit dependency review** (vendored build-glue source) is deferred to
+T2.3, when the Flutter app scaffold is created and Cargokit is instantiated
+from the frb template at a specific pinned revision.
+
+**`deny.toml` target expansion (same change):** added 4 mobile triples
+(`aarch64-apple-ios`, `aarch64-apple-ios-sim`, `aarch64-linux-android`,
+`x86_64-linux-android`). The `webpki-root-certs` (CDLA-Permissive-2.0)
+crate — documented in the Phase-2b entry below as a cfg-gated-out
+`rustls-platform-verifier` fallback — remains excluded from the mobile
+target graphs (iOS uses `security-framework`, Android uses the JNI
+component); no license-allowlist change was needed.
 
 #### `falach-tui` — `ratatui` TUI stack (tui-skeleton Phase 1, 2026-06-01)
 

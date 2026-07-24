@@ -17,6 +17,11 @@ edition = "2021"
 license = "MIT"
 authors = ["Jason <jsco2t@gmail.com>"]
 repository = "https://github.com/jsco2t/falach"
+# flutter_rust_bridge triple-pin (design §2.6): the runtime crate
+# (falach-api Cargo.toml), the Dart pub package (app/pubspec.yaml),
+# and the codegen CLI tool (install-toolchain.sh) MUST all be pinned
+# to the SAME version. Current pin: 2.12.0
+#
 # MSRV pinned to 1.89 — the release that stabilized std::fs::File::{lock,
 # lock_shared, try_lock, try_lock_shared, unlock} and `std::fs::TryLockError`,
 # which `falach-core::locking` uses directly (replacing the previous `fs2`
